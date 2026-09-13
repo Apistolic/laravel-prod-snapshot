@@ -76,6 +76,34 @@ Postgres dumps to `database_path('seeders/postgres-backups')` (configurable
 via `db-sync.backup_path`), then restored into whatever connection
 `database.default` points to locally.
 
+## Security
+
+This package dumps production data to disk and restores it locally, so a few
+things are worth being deliberate about:
+
+- **Network exposure.** Prefer the SSH tunnel (`tunnel.enabled => true`) over
+  exposing a database port publicly. The tunnel uses key-based auth only
+  (`BatchMode=yes`) and only forwards `127.0.0.1` on both ends. Don't widen
+  firewall rules (e.g. `0.0.0.0/0`) or disable TLS just to make a connection
+  work — fix the tunnel/credentials instead.
+- **Transport encryption.** Set `require_ssl => true` for any connection that
+  isn't already going through the SSH tunnel (e.g. a direct connection to a
+  managed database host). A tunneled connection is already encrypted by SSH,
+  so `require_ssl` is typically unnecessary there.
+- **Credentials.** Use a read-only, backup-only database user for the remote
+  connection instead of full application credentials, so a leaked backup
+  credential can't write or drop data. Treat any credential that's been typed
+  into a terminal or `.env` on a dev machine as "seen" and rotate it if that's
+  a concern for your environment.
+- **Local exposure of production data.** A successful `db:pull` puts a full
+  copy of production data — including any real user PII — on your local
+  machine. Make sure `backup_path` directories are gitignored (this package's
+  default paths, `database/seeders/mysql-backups` and
+  `database/seeders/postgres-backups`, commonly already are in a Laravel app)
+  and delete old dumps you no longer need.
+- **Secrets.** Never commit `.env`, and never paste real host/username/password
+  values from `config/db-sync.php` or your `.env` into chat, tickets, or docs.
+
 ## Requirements
 
 The relevant client binaries must be available: `mysqldump`/`mysql` for MySQL
