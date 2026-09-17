@@ -9,8 +9,8 @@ return [
     | Default Remote Connection
     |--------------------------------------------------------------------------
     |
-    | The key of the "connections" array below to use when `db:pull` is run
-    | without an explicit connection argument.
+    | The key of the "connections" array below to use when `db:pull` or
+    | `db:push` is run without an explicit connection argument.
     |
     */
     'default' => env('DB_SYNC_CONNECTION', 'prod'),
@@ -21,10 +21,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | Each entry names a connection defined in config('database.connections')
-    | that holds the remote host/database/username/password to dump from.
-    | The connection's own "driver" (mysql or pgsql) is used unless overridden
-    | here. Set "tunnel.enabled" to open an SSH tunnel before dumping (e.g.
-    | Forge servers that only accept DB connections from localhost).
+    | that holds the remote host/database/username/password to dump from
+    | (`db:pull`) or restore into (`db:push`) - both commands share this same
+    | config. The connection's own "driver" (mysql or pgsql) is used unless
+    | overridden here. Set "tunnel.enabled" to open an SSH tunnel before
+    | connecting (e.g. Forge servers that only accept DB connections from
+    | localhost). Note that `db:push` needs write access, so this
+    | connection's credentials can't be the read-only user recommended for
+    | `db:pull`-only use - see the README's Security section.
     |
     */
     'connections' => [

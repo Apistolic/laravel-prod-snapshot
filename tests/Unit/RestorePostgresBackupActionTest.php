@@ -40,3 +40,10 @@ it('ignores unsupported files when selecting latest backup', function (): void {
 
     expect($action->findLatestBackupPath($dir))->toBe($backup);
 });
+
+it('requires a host, database, and username when restoring to a remote connection (db:push)', function (): void {
+    $action = new RestorePostgresBackupAction(new PostgresBinaryPathResolver);
+
+    expect(fn () => $action->execute(backupPath: '/tmp/does-not-matter.dump', database: 'prod'))
+        ->toThrow(RuntimeException::class, 'Postgres connection is missing host/database/username configuration.');
+});

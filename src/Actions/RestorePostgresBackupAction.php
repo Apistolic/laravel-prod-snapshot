@@ -15,25 +15,53 @@ final readonly class RestorePostgresBackupAction
         private PostgresBinaryPathResolver $pgResolver
     ) {}
 
-    public function execute(?string $backupDirectory = null): string
-    {
-        $connection = config('database.default');
-        $driver = config("database.connections.{$connection}.driver");
+    /**
+     * Restores a Postgres backup file. By default this targets the local
+     * `database.default` connection (the `db:pull` use case); pass an
+     * explicit `$backupPath` plus `$host`/`$database`/`$username` (and
+     * optionally `$port`/`$password`) to restore into an arbitrary remote
+     * connection instead (the `db:push` use case) - the underlying restore
+     * mechanics are identical either way, only the target differs.
+     */
+    public function execute(
+        ?string $backupDirectory = null,
+        ?string $backupPath = null,
+        ?string $host = null,
+        ?string $port = null,
+        ?string $database = null,
+        ?string $username = null,
+        ?string $password = null,
+    ): string {
+        $restoringToRemote = $host !== null || $database !== null || $username !== null;
 
-        throw_if($driver !== 'pgsql', RuntimeException::class, "Postgres backup restore seeding requires a 'pgsql' connection. Current driver: {$driver}.");
+        if (! $restoringToRemote) {
+            $connection = config('database.default');
+            $driver = config("database.connections.{$connection}.driver");
 
-        $backupDirectory = $backupDirectory ?: (string) config('db-sync.backup_path.pgsql', database_path('seeders/postgres-backups'));
-        $backupPath = $this->findLatestBackupPath($backupDirectory);
+            throw_if($driver !== 'pgsql', RuntimeException::class, "Postgres backup restore seeding requires a 'pgsql' connection. Current driver: {$driver}.");
 
-        throw_if($backupPath === null, RuntimeException::class, "No backup files found in {$backupDirectory}.");
+            $host = (string) config("database.connections.{$connection}.host", '127.0.0.1');
+            $port = (string) config("database.connections.{$connection}.port", '5432');
+            $database = (string) config("database.connections.{$connection}.database");
+            $username = (string) config("database.connections.{$connection}.username");
+            $password = (string) config("database.connections.{$connection}.password");
+        }
 
-        $host = (string) config("database.connections.{$connection}.host", '127.0.0.1');
-        $port = (string) config("database.connections.{$connection}.port", '5432');
-        $database = (string) config("database.connections.{$connection}.database");
-        $username = (string) config("database.connections.{$connection}.username");
-        $password = (string) config("database.connections.{$connection}.password");
+        $port ??= '5432';
+        $password ??= '';
 
-        throw_if($database === '' || $username === '', RuntimeException::class, 'Postgres connection is missing database and/or username configuration.');
+        if ($backupPath === null) {
+            $backupDirectory = $backupDirectory ?: (string) config('db-sync.backup_path.pgsql', database_path('seeders/postgres-backups'));
+            $backupPath = $this->findLatestBackupPath($backupDirectory);
+
+            throw_if($backupPath === null, RuntimeException::class, "No backup files found in {$backupDirectory}.");
+        }
+
+        throw_if(
+            $host === null || $host === '' || $database === null || $database === '' || $username === null || $username === '',
+            RuntimeException::class,
+            'Postgres connection is missing host/database/username configuration.',
+        );
 
         $ext = $this->normalizedExtension($backupPath);
 

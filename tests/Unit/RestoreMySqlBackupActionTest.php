@@ -31,3 +31,10 @@ it('picks the most recently modified backup file', function () {
         rmdir($dir);
     }
 });
+
+it('requires a host, database, and username when restoring to a remote connection (db:push)', function (): void {
+    $action = new RestoreMySqlBackupAction;
+
+    expect(fn () => $action->execute(backupPath: '/tmp/does-not-matter.sql', database: 'prod'))
+        ->toThrow(RuntimeException::class, 'MySQL connection is missing host/database/username configuration.');
+});

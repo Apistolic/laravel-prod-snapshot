@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Apistolic\LaravelProdSnapshot;
 
 use Apistolic\LaravelProdSnapshot\Console\Commands\PullDatabaseCommand;
+use Apistolic\LaravelProdSnapshot\Console\Commands\PushDatabaseCommand;
 use Illuminate\Support\ServiceProvider;
 
 final class LaravelProdSnapshotServiceProvider extends ServiceProvider
@@ -23,6 +24,7 @@ final class LaravelProdSnapshotServiceProvider extends ServiceProvider
 
             $this->commands([
                 PullDatabaseCommand::class,
+                PushDatabaseCommand::class,
             ]);
         }
     }
